@@ -1,0 +1,1 @@
+FreeFem++ elas.edp -v 0 -Plotting 0 -ratio 1

@@ -1,0 +1,188 @@
+//	_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/  
+//	_/ (c) 2021 Hao Li, Shinji Nishiwaki					_/ 
+//	_/ All right reserved									_/ 
+//	_/ 														_/ 
+//	_/ Department of Mechanical Engineering and Science		_/ 
+//	_/ Graduate School of Engineering						_/ 
+//	_/ Kyoto University										_/ 
+//	_/ C3, Kyoto-daigaku-katsura, Nishikyo-ku, Kyoto, JAPAN	_/
+//	_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
+
+//=====================================
+// Modulus
+//=====================================
+load "iovtk"
+include "getARGV.idp"
+
+//=====================================
+// Parameters
+//=====================================
+real E;			E 			= 1.0;						// Young's modulus	
+real nu; 		nu 			= 0.3;						// Poisson's ratio
+real lambda;	lambda 		= nu*1./(1+nu)/(1-2.*nu);	// Lame coefficient
+real mu; 		mu 			= 1./2./(1+nu);				// Lame coefficient
+real cpuTime;
+
+real Length; Length = 2.0;  // Length of the computational domain
+real Height; Height = 1.0;  // Height of the computational domain
+real ratio;  ratio = getARGV("-ratio", 1.);    // contol mesh resolution
+
+bool Plotting; Plotting = getARGV("-Plotting", 1.);
+bool Savemesh; Savemesh = getARGV("-Savemesh", 1.);
+
+int count; count = 0;
+int countMax; countMax = 5;
+//=====================================
+// Macros
+//=====================================
+macro print(text)
+{
+	cout << text << endl;
+} //
+
+macro printDivider
+{
+	cout << "=============================================================" << endl;
+} //
+
+macro setCPUTime
+{
+	cpuTime = clock();
+} //
+
+macro printElapsedTime
+{
+	print("Solved in " + (clock() - cpuTime) + " s")
+} //
+
+macro u [u1,u2] 				//	displacement vector
+macro tu [tu1,tu2] 			//	test function for displacement
+macro e(u) [dx(u[0]),dy(u[1]),(dx(u[1])+dy(u[0]))] // strain tensor
+macro D [[2.*mu+lambda,lambda,0],[lambda,2.*mu+lambda,0],[0,0,mu]] //elastic tensor
+macro g [0,-1] 				// surface traction
+
+printDivider;
+print("Material property")
+print("E = "+E+"; nu = "+nu+";")
+
+//=====================================
+// Geometry
+//=====================================
+printDivider;
+print("Creating mesh ...")
+
+IFMACRO(!SquareMesh)
+IFMACRO(!BoarderMesh)
+macro SquareMesh()true//
+ENDIFMACRO
+ENDIFMACRO
+
+IFMACRO(SquareMesh)
+int[int] 		labs(1);		// labels on boundaries of squre: (bottom, right, top, left)
+int[int]		MeshNum(1);		// number of mesh: (x cordinate, y cordinate)
+real[int] 	Pos0(1),Pos1(1);	// Positions of diagonal points of squre: (x cordinate, y cordinate)
+labs = [1,2,3,4];
+MeshNum = [100. * ratio, 50.*ratio];
+Pos0 = [0.0,0.0];
+Pos1 = [Length,Height];
+mesh Sh = square(
+					MeshNum(0),MeshNum(1),
+					[Pos0(0)+(Pos1(0) - Pos0(0))*x, Pos0(1)+(Pos1(1)-Pos0(1))*y],
+					label=labs,flags=1,region=1
+					);
+ENDIFMACRO
+
+IFMACRO(BoarderMesh)
+border C1(t=0,Length){x=t;y=0;label=1;} // bottom
+border C2(t=0,Height){x=Length;y=t;label=2;} 	// right
+border C3(t=Length,0){x=t;y=Height;label=3;} 	// top
+border C4(t=Height,0){x=0;y=t;label=4;} 	// left
+int n = 50. * ratio;
+int n1 = 100. * ratio;
+mesh Sh=buildmesh(C1(n1)+C2(n)+C3(n1)+C4(n));
+ENDIFMACRO
+
+int[int] wall(1);     		wall    	= [4];		// 	fixed displacement
+int[int] traction(1);     traction  = [2];		//	surface traction
+
+if(Plotting){
+  plot(Sh,cmm="Initial mesh",wait=true);
+}
+if(Savemesh){
+  savemesh(Sh,"./output_sol/mesh.mesh");
+}
+
+//=====================================
+// Finite element space
+//=====================================
+printDivider;
+print("Finite element space ...")
+fespace VhV2(Sh, [P2,P2]), VhV1(Sh, [P1,P1]);
+fespace VhS1(Sh, P1);
+printDivider;
+print("Finite Element DOF: " + VhV1.ndof);
+print("Number of Elements: " + Sh.nt);
+
+//=====================================
+// Declare variables
+//=====================================
+printDivider;
+print("Declare variables ...")
+VhV2 	u,tu; // u : state variable (displacement); tu: test function for displacement
+VhS1 phi, phiTemp; // level-set function
+
+//=====================================
+// Weak formulation
+//=====================================
+printDivider;
+print("Weak formulation ...")
+
+problem elasticity(u,tu)
+		=int1d(Sh,traction)(g'*tu)
+		-int2d(Sh)((D*e(u))'*e(tu)*E)
+		+ on(wall,u1=0,u2=0)
+		;
+
+for(real count = 0.; count<countMax; count += 1){
+//=====================================
+// Solver
+//=====================================
+printDivider;
+print("Solving state equation ...")
+setCPUTime
+elasticity;
+printElapsedTime
+
+if(Plotting){
+  plot([u1,u2],cmm="Displacement",wait=true,value=true);
+}
+
+//=====================================
+// Output .dat
+//=====================================
+printDivider;
+print("Writing .dat ...")
+ofstream sol("./output/sol_"+count+".dat");
+for (int i =0 ; i < Sh.nv ; i++){ 
+	if(Sh(i).label == 1){
+		sol << Sh(i).x << " "<< phi(Sh(i).x,Sh(i).y) << endl;
+	}	
+}
+
+//=====================================
+// Paraview visualization
+//=====================================
+printDivider;
+print ("Saving VTK file...")
+int[int] order = [1, 1, 0];
+savevtk("./output/displacement_"+count+".vtu", Sh, [u1,u2,0], phi, region, dataname="disp phi region", order = order);
+
+//=====================================
+// Mesh adaptation
+//=====================================
+for(real step=0.; step<5; step +=1){
+	phi = -0.5*(x<=count*0.4)+0.5*(x>count*0.4);
+	Sh = adaptmesh(Sh, phi, err=1e-4, iso=1, ratio=1.2, hmin=5e-3, hmax = 5e-2);
+}
+
+}

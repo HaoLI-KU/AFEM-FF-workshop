@@ -1,0 +1,15 @@
+real E;			E 			= 1.0;						// Young's modulus	
+real nu; 		nu 			= 0.3;						// Poisson's ratio
+real lambda;	lambda 		= nu*1./(1+nu)/(1-2.*nu);	// Lame coefficient
+real mu; 		mu 			= 1./2./(1+nu);				// Lame coefficient
+real cpuTime;
+
+real Length; Length = 2.0;  // Length of the computational domain
+real Height; Height = 1.0;  // Height of the computational domain
+real ratio;  ratio = getARGV("-ratio", 1.);    // contol mesh resolution
+
+bool Plotting; Plotting = getARGV("-Plotting", 1.);
+bool Savemesh; Savemesh = getARGV("-Savemesh", 1.);
+
+int count; count = 0;
+int countMax; countMax = 5;

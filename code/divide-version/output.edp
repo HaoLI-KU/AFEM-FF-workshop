@@ -1,0 +1,8 @@
+printDivider;
+print("Writing .dat ...")
+ofstream sol("./output/sol_"+count+".dat");
+for (int i =0 ; i < Sh.nv ; i++){ 
+	if(Sh(i).label == 1){
+		sol << Sh(i).x << " "<< phi(Sh(i).x,Sh(i).y) << endl;
+	}	
+}

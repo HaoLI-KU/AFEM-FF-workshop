@@ -1,0 +1,43 @@
+printDivider;
+print("Creating mesh ...")
+
+IFMACRO(!SquareMesh)
+IFMACRO(!BoarderMesh)
+macro SquareMesh()true//
+ENDIFMACRO
+ENDIFMACRO
+
+IFMACRO(SquareMesh)
+int[int] 		labs(1);		// labels on boundaries of squre: (bottom, right, top, left)
+int[int]		MeshNum(1);		// number of mesh: (x cordinate, y cordinate)
+real[int] 	Pos0(1),Pos1(1);	// Positions of diagonal points of squre: (x cordinate, y cordinate)
+labs = [1,2,3,4];
+MeshNum = [100. * ratio, 50.*ratio];
+Pos0 = [0.0,0.0];
+Pos1 = [Length,Height];
+mesh Sh = square(
+					MeshNum(0),MeshNum(1),
+					[Pos0(0)+(Pos1(0) - Pos0(0))*x, Pos0(1)+(Pos1(1)-Pos0(1))*y],
+					label=labs,flags=1,region=1
+					);
+ENDIFMACRO
+
+IFMACRO(BoarderMesh)
+border C1(t=0,Length){x=t;y=0;label=1;} // bottom
+border C2(t=0,Height){x=Length;y=t;label=2;} 	// right
+border C3(t=Length,0){x=t;y=Height;label=3;} 	// top
+border C4(t=Height,0){x=0;y=t;label=4;} 	// left
+int n = 50. * ratio;
+int n1 = 100. * ratio;
+mesh Sh=buildmesh(C1(n1)+C2(n)+C3(n1)+C4(n));
+ENDIFMACRO
+
+int[int] wall(1);     		wall    	= [4];		// 	fixed displacement
+int[int] traction(1);     traction  = [2];		//	surface traction
+
+if(Plotting){
+  plot(Sh,cmm="Initial mesh",wait=true);
+}
+if(Savemesh){
+  savemesh(Sh,"./output_sol/mesh.mesh");
+}

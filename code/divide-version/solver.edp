@@ -1,0 +1,9 @@
+printDivider;
+print("Solving state equation ...")
+setCPUTime
+elasticity;
+printElapsedTime
+
+if(Plotting){
+  plot([u1,u2],cmm="Displacement",wait=true,value=true);
+}

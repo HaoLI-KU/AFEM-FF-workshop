@@ -1,0 +1,15 @@
+printDivider;
+print("Finite element space ...")
+fespace VhV2(Sh, [P2,P2]), VhV1(Sh, [P1,P1]);
+fespace VhS1(Sh, P1);
+printDivider;
+print("Finite Element DOF: " + VhV1.ndof);
+print("Number of Elements: " + Sh.nt);
+
+//=====================================
+// Declare variables
+//=====================================
+printDivider;
+print("Declare variables ...")
+VhV2 	u,tu; // u : state variable (displacement); tu: test function for displacement
+VhS1 phi, phiTemp; // level-set function

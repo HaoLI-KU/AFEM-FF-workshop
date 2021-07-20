@@ -1,0 +1,8 @@
+printDivider;
+print("Weak formulation ...")
+
+problem elasticity(u,tu)
+		=int1d(Sh,traction)(g'*tu)
+		-int2d(Sh)((D*e(u))'*e(tu)*E)
+		+ on(wall,u1=0,u2=0)
+		;

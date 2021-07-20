@@ -1,0 +1,4 @@
+printDivider;
+print ("Saving VTK file...")
+int[int] order = [1, 1, 0];
+savevtk("./output/displacement_"+count+".vtu", Sh, [u1,u2,0], phi, region, dataname="disp phi region", order = order);

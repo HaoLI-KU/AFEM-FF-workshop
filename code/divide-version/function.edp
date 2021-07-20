@@ -1,0 +1,29 @@
+macro print(text)
+{
+	cout << text << endl;
+} //
+
+macro printDivider
+{
+	cout << "=============================================================" << endl;
+} //
+
+macro setCPUTime
+{
+	cpuTime = clock();
+} //
+
+macro printElapsedTime
+{
+	print("Solved in " + (clock() - cpuTime) + " s")
+} //
+
+macro u [u1,u2] 				//	displacement vector
+macro tu [tu1,tu2] 			//	test function for displacement
+macro e(u) [dx(u[0]),dy(u[1]),(dx(u[1])+dy(u[0]))] // strain tensor
+macro D [[2.*mu+lambda,lambda,0],[lambda,2.*mu+lambda,0],[0,0,mu]] //elastic tensor
+macro g [0,-1] 				// surface traction
+
+printDivider;
+print("Material property")
+print("E = "+E+"; nu = "+nu+";")

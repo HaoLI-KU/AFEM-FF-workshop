@@ -1,0 +1,4 @@
+for(real step=0.; step<5; step +=1){
+	phi = -0.5*(x<=count*0.4)+0.5*(x>count*0.4);
+	Sh = adaptmesh(Sh, phi, err=1e-4, iso=1, ratio=1.2, hmin=5e-3, hmax = 5e-2);
+}

@@ -1,0 +1,1 @@
+FreeFem++ main.edp -v 0 -Plotting 0 -ratio 1
