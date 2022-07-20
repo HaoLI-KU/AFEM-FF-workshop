@@ -1,0 +1,43 @@
+// ==========================================
+//  Hao LI Demo CODE (Nishiwaki Lab)
+//  2D steady heat conduction
+//  Question 6.3
+// -------------------------------------------
+//  NOTE:
+//  Dirichlet & Neumann boundary conditions
+// ==========================================
+load "medit"		//for medit
+load "iovtk"		//for paraview
+include "getARGV.idp"
+//Geomesh
+real ratio; ratio = getARGV("-ratio",1.0);		//mesh ratio
+mesh th=square(10*ratio,20*ratio,[x*2,y*4]);
+plot (th,fill=1);
+//Parameter
+real heatflux; heatflux=-1000;		//positive means release heat
+real heatsource; heatsource=100;
+//Fespace
+fespace Vh(th,P1);		//try P1 element also;
+Vh T,v;
+//Macro
+macro k [[50,0],[0,200]] // thermal conductivity tensor
+macro Grad(u) [[dx(u)],[dy(u)]]//
+macro Norm [N.x, N.y]//	normal vector
+//Calculate the volume and length
+real Vol; Vol=int2d(th)(1.0);
+real l1; l1=int1d(th,2)(1.0);
+//Define Governing equation									 
+problem Laplacian(T,v)=int2d(th) ( (k*Grad(T))'*Grad(v)	)
+								 +int1d(th,2)(heatflux/l1*v)			//positive means release heat
+								 +int1d(th,4)(0*v)								//adiabatic boundary
+								 +on(1,T=20)											//low temperature
+								 +on(3,T=30)											//high temperature
+								 -int2d(th)(heatsource/Vol*v)			//volume heat source
+								 ;
+// Solve PDE
+Laplacian;			
+plot(T,value=true,wait=1,fill=true);
+//Paraview export
+int[int] Order = [1];
+string DataName = "T";
+savevtk("./output/T.vtu", th, T, dataname=DataName, order=Order);
