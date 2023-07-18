@@ -1,0 +1,102 @@
+//	_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/  
+//	_/ (c) 2023 Hao Li, Shinji Nishiwaki					_/ 
+//	_/ All right reserved									_/ 
+//	_/ 														_/ 
+//	_/ Department of Mechanical Engineering and Science		_/ 
+//	_/ Graduate School of Engineering						_/ 
+//	_/ Kyoto University										_/ 
+//	_/ C3, Kyoto-daigaku-katsura, Nishikyo-ku, Kyoto, JAPAN	_/
+//	_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
+
+load "iovtk" // for paraview output
+include "getARGV.idp" // for global variable 
+// Macros
+macro printDivider {cout << "=====================" << endl;}//
+
+//Parameters
+real E; E = 1.0; // Young's modulus
+real nu; nu = 0.3; // Poisson's ratio
+real lambda; lambda = nu/(1+nu)/(1.-2.*nu); //Lame coefficient
+real mu; mu = 1./2./(1+nu); // Lame coefficient
+real D11 = lambda+2.0*mu;
+real D12 = lambda;
+real D13 = 0.0;
+real D21 = lambda;
+real D22 = lambda+2.0*mu;
+real D23 = 0.0;
+real D31 = 0.0;
+real D32 = 0.0;
+real D33 = mu;
+real Length; Length = 2.0; 
+real Height; Height = 1.0;
+real ratio; ratio = getARGV("-ratio", 1.0); //mesh resolution
+// Geometry
+mesh th = square(100*ratio, 50*ratio, [0.0+Length*x, 0.0+Height*y], flags = 1); //bottom: 1, right: 2; top: 3, left: 4
+plot(th, wait=true);
+// finite element space
+fespace Vh2(th, [P2,P2]);
+fespace Vh1(th, P1);
+// declare state variable
+Vh2 [u1,u2]; // state variabel, displacement
+Vh2 [tu1, tu2]; // test function
+// Macro
+macro e(u1,u2) [dx(u1),dy(u2), dx(u2)+dy(u1)]//strain tensor
+macro D [[D11, D21, D31], [D12, D22, D32], [D31, D32, D33]]//elasticity tensor
+macro t [0,-1.0] //surface traction
+// Variational formulation
+IFMACRO(!Matrixform)
+IFMACRO(!Problemform)
+macro Matrixform()true//
+ENDIFMACRO
+ENDIFMACRO
+
+IFMACRO(Problemform)
+problem elas([u1, u2], [tu1, tu2]) = 
+     int2d(th)( (D * e(u1, u2))' * e(tu1, tu2))
+    - int1d(th,2)(t' * [tu1, tu2])
+    + on(4, u1 =0, u2 =0)
+  ;
+elas;
+ENDIFMACRO
+
+IFMACRO(Matrixform)
+varf elas([u1, u2], [tu1, tu2]) = 
+     int2d(th)( (D * e(u1, u2))' * e(tu1, tu2))
+    + int1d(th,2)(t' * [tu1, tu2])
+    + on(4, u1 =0, u2 =0)
+  ;
+matrix A = elas(Vh2, Vh2);
+real[int] rhs = elas(0,Vh2);
+u1[] = A^-1 * rhs;
+ENDIFMACRO
+
+real[int, int] K(A.m, A.m);
+for (int i = 0; i< A.m; i++){
+  for (int j = 0; j< A.m; j++){
+    K(i,j) = A(i,j);
+  }
+}
+cout<< K <<endl;
+
+ofstream outfile("./output/StiffnessMatrix.dat");
+for (int i = 0; i < A.m; ++i) {
+    for (int j = 0; j < A.m; ++j) {
+        outfile << K(i,j) << " ";
+    }
+    outfile << "\n"; 
+}
+
+
+
+// plot
+plot([u1,u2]);
+// 
+ofstream sol("./output/sol.dat");
+for(int i = 0; i < th.nv; i++){
+  if(th(i).label==4){
+    sol << th(i).y << " " << u1(th(i).x, th(i).y) << endl;
+  }
+}
+// Paraview output
+int[int] order = [1];
+savevtk("./output/displacement.vtu", th, [u1,u2,0], dataname = "disp", order = order);
